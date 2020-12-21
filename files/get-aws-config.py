@@ -13,6 +13,8 @@ settings = Dynaconf(envvar_prefix="CONFIG")
 
 sys.stdout.flush()
 
+logger = logging.getLogger('get-aws-config')
+
 if "LOGLEVEL" in settings:
     loglevel = settings.LOGLEVEL
     numeric_level = getattr(logging, loglevel.upper(), None)
@@ -22,31 +24,33 @@ if "LOGLEVEL" in settings:
 
 if "DEBUG" in settings:
     logging.basicConfig(level=10)
-    logging.debug('Setting log level to DEBUG')
+    logger.debug('Setting log level to DEBUG')
 
 basedir = "/configs/"
 
 if "BASEDIR" in settings:
     basedir = settings.BASEDIR
 
-logging.debug('basedir is set to ' + basedir)
+logger.debug('basedir is set to ' + basedir)
 
 if not os.path.isdir(basedir):
-    logging.debug('Createing basedir of ' + basedir)
+    logger.debug('Createing basedir of ' + basedir)
     os.mkdir(basedir)
 
 if "ITEM" in settings:
     items = settings.ITEM
 
     for item in items:
-        logging.info('Processing item: ' + item)
+        logger.info('Processing item: ' + item)
 
         itemdict=settings.item[item]
-        logging.debug('itemdict')
+        logger.debug('itemdict')
 
         if 'conftype' in itemdict:
             if itemdict['conftype'] == "secret":
-                
+
+                logger.debug(item + ' is a secret object')
+
                 full_dir = basedir + "/" + item
                 if "directory" in itemdict:
                     full_dir = basedir + itemdict['directory']
@@ -55,31 +59,37 @@ if "ITEM" in settings:
                 if "filename" in itemdict:
                     my_filename = itemdict["filename"]
                 
-                client = boto3.client('secretsmanager')
-                response = client.get_secret_value(
-                    SecretId=itemdict['path']
-                )
-                answer = response['SecretString']
-                
-                if 'enc' in itemdict:
-                    if itemdict['enc'] == "b64+gz":
-                        answer = base64.b64decode(answer)
-                        answer = gzip.decompress(answer).decode("utf-8")
-                    elif itemdict['enc'] == "b64":
-                        answer = base64.b64decode(answer)
+                try:
+                    client = boto3.client('secretsmanager')
+                    response = client.get_secret_value(
+                        SecretId=itemdict['path']
+                    )
+                    answer = response['SecretString']
+                    
+                    if 'enc' in itemdict:
+                        if itemdict['enc'] == "b64+gz":
+                            answer = base64.b64decode(answer)
+                            answer = gzip.decompress(answer).decode("utf-8")
+                        elif itemdict['enc'] == "b64":
+                            answer = base64.b64decode(answer)
 
-                if not os.path.isdir( full_dir ):
-                    os.mkdir( full_dir )
+                    if not os.path.isdir( full_dir ):
+                        os.mkdir( full_dir )
 
-                logging.debug("Found the following answer:")
-                logging.debug(answer)
+                    logger.debug("Found the following answer:")
+                    logger.debug(answer)
 
-                f = open(full_dir + "/" + my_filename, "w")
-                f.write(answer)
-                f.close()
+                    f = open(full_dir + "/" + my_filename, "w")
+                    f.write(answer)
+                    f.close()
+                except Exception as e:
+                    logger.error('Something went wrong with item: ' + item)
+                    logger.error(e)
+                except:
+                    logger.error('Something went wrong with item: ' + item)
 
             elif itemdict['conftype'] == "s3":
-                logging.debug(item + ' is an s3 object')
+                logger.debug(item + ' is an s3 object')
                 
                 full_dir = basedir + "/" + item
                 if "directory" in itemdict:
@@ -96,12 +106,20 @@ if "ITEM" in settings:
 
                         s3 = boto3.resource('s3')
                         
-                        logging.debug('Bucket is: ' + bucket )
-                        logging.debug('Object path is: ' + object_path)
-
-                        s3.Object(bucket, object_path).download_file(full_dir + "/" + my_filename)
+                        logger.debug('Bucket is: ' + bucket )
+                        logger.debug('Object path is: ' + object_path)
+                        try:
+                            s3.Object(bucket, object_path).download_file(full_dir + "/" + my_filename)
+                        except Exception as e:
+                            logger.error('Something went wrong with item: ' + item)
+                            logger.error(e)
+                        except:
+                            logger.error('Something went wrong with item: ' + item)
                     else:
-                        logging.error('missing item path')
+                        logger.error('missing item path')
                 else:
-                    logging.error('missing item bucket')
-
+                    logger.error('missing item bucket')
+            else:
+                logger.warning('I do not have support fo that item type')
+else:
+    logger.warning('I did not find any items to fetch')

@@ -6,38 +6,43 @@ import json
 import boto3
 import base64
 import gzip
+import logging
 from dynaconf import Dynaconf
 
 settings = Dynaconf(envvar_prefix="CONFIG")
 
 sys.stdout.flush()
 
-debug = False
+if "LOGLEVEL" in settings:
+    loglevel = settings.LOGLEVEL
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % loglevel)
+    logging.basicConfig(level=numeric_level)
+
 if "DEBUG" in settings:
-    debug = True
+    logging.basicConfig(level=10)
+    logging.debug('Setting log level to DEBUG')
 
 basedir = "/configs/"
 
 if "BASEDIR" in settings:
     basedir = settings.BASEDIR
 
-if debug:
-    print("Basedir is set to " + basedir)
+logging.debug('basedir is set to ' + basedir)
 
 if not os.path.isdir(basedir):
-    if debug:
-        print("Creating basedir of " + basedir)
+    logging.debug('Createing basedir of ' + basedir)
     os.mkdir(basedir)
 
 if "ITEM" in settings:
     items = settings.ITEM
 
     for item in items:
-        print("Processing item: " + item)
+        logging.info('Processing item: ' + item)
 
         itemdict=settings.item[item]
-        if debug:
-            print (itemdict)
+        logging.debug('itemdict')
 
         if 'conftype' in itemdict:
             if itemdict['conftype'] == "secret":
@@ -66,17 +71,15 @@ if "ITEM" in settings:
                 if not os.path.isdir( full_dir ):
                     os.mkdir( full_dir )
 
-                if debug:
-                    print("Found the following answer:")
-                    print(answer)
+                logging.debug("Found the following answer:")
+                logging.debug(answer)
 
                 f = open(full_dir + "/" + my_filename, "w")
                 f.write(answer)
                 f.close()
 
             elif itemdict['conftype'] == "s3":
-                if debug:
-                    print(item + " is an s3 object")
+                logging.debug(item + ' is an s3 object')
                 
                 full_dir = basedir + "/" + item
                 if "directory" in itemdict:
@@ -93,12 +96,12 @@ if "ITEM" in settings:
 
                         s3 = boto3.resource('s3')
                         
-                        if debug:
-                            print('Bucket is: ' + bucket)
-                            print('Object path is: ' + object_path)
+                        logging.debug('Bucket is: ' + bucket )
+                        logging.debug('Object path is: ' + object_path)
+
                         s3.Object(bucket, object_path).download_file(full_dir + "/" + my_filename)
                     else:
-                        print('Missing path option')
+                        logging.error('missing item path')
                 else:
-                    print('Missing bucket name')
+                    logging.error('missing item bucket')
 

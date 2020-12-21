@@ -1,3 +1,3 @@
 # get-aws-config
 
-get-aws-config is a tool created to fetch configuration data from certain services (currently secrets manager and s3) to be consumed by a container.  The goal is to make containers that have very little configurations inside of them, and instead by using shared volumes, you can inject the configuration in.
+get-aws-config is a tool created to fetch configuration data from certain AWS services (currently secrets manager and s3) to be dump to a shared volume and consumed by a container.  The goal is to make containers that have very little configurations inside of them, and instead by using shared volumes, you can inject the configuration in.  This is most useful in services like ECS and fargate to work in a similar fashion as kubernete's configmap.

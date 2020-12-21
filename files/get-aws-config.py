@@ -27,7 +27,6 @@ if "DEBUG" in settings:
     logger.debug('Setting log level to DEBUG')
 
 basedir = "/configs/"
-
 if "BASEDIR" in settings:
     basedir = settings.BASEDIR
 
@@ -44,7 +43,7 @@ if "ITEM" in settings:
         logger.info('Processing item: ' + item)
 
         itemdict=settings.item[item]
-        logger.debug('itemdict')
+        logger.debug('Config options are: ' + str(itemdict))
 
         if 'conftype' in itemdict:
             if itemdict['conftype'] == "secret":

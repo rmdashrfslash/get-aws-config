@@ -81,6 +81,12 @@ if "ITEM" in settings:
                     f = open(full_dir + "/" + my_filename, "w")
                     f.write(answer)
                     f.close()
+                    if 'uid' in itemdict:
+                        os.chown(full_dir + "/" + my_filename,int(itemdict['uid']),-1)
+                    if 'gid' in itemdict:
+                        os.chown(full_dir + "/" + my_filename,-1,int(itemdict['gid']))
+                    if 'chmod' in itemdict:
+                        os.chmod(full_dir + "/" + my_filename, int(itemdict['chmod'],8))
                 except Exception as e:
                     logger.error('Something went wrong with item: ' + item)
                     logger.error(e)
@@ -109,6 +115,12 @@ if "ITEM" in settings:
                         logger.debug('Object path is: ' + object_path)
                         try:
                             s3.Object(bucket, object_path).download_file(full_dir + "/" + my_filename)
+                            if 'uid' in itemdict:
+                                os.chown(full_dir + "/" + my_filename,int(itemdict['uid']),-1)
+                            if 'gid' in itemdict:
+                                os.chown(full_dir + "/" + my_filename,-1,int(itemdict['gid']))
+                            if 'chmod' in itemdict:
+                                os.chmod(full_dir + "/" + my_filename, int(itemdict['chmod'],8))
                         except Exception as e:
                             logger.error('Something went wrong with item: ' + item)
                             logger.error(e)

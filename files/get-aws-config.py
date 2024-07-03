@@ -144,6 +144,6 @@ if "ITEM" in settings:
                 else:
                     logger.warning('I do not have support fo that item type')
 
-    FIRSTRUN=False
+        FIRSTRUN=False
 else:
     logger.warning('I did not find any items to fetch')
